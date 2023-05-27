@@ -27,11 +27,11 @@ def add(id, name, price, location, quantity, status):
     print(column_names)
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS inventory(
-        itemId integer, 
+        itemId integer,
         itemName TEXT,
-        itemPrice integer, 
-        itemLocation TEXT, 
-        itemQuantity integer, 
+        itemPrice integer,
+        itemLocation TEXT,
+        itemQuantity integer,
         itemStatus TEXT);""")
     cursor.execute("INSERT INTO inventory VALUES (?, ?, ?, ?, ?, ?)",
                    (id, name, price, location, quantity, status))
