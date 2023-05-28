@@ -27,11 +27,11 @@ def add(id, name, price, location, quantity, status):
     print(column_names)
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS inventory(
-        itemId integer, 
+        itemId integer,
         itemName TEXT,
-        itemPrice integer, 
-        itemLocation TEXT, 
-        itemQuantity integer, 
+        itemPrice integer,
+        itemLocation TEXT,
+        itemQuantity integer,
         itemStatus TEXT);""")
     cursor.execute("INSERT INTO inventory VALUES (?, ?, ?, ?, ?, ?)",
                    (id, name, price, location, quantity, status))
@@ -92,9 +92,9 @@ def add_inventory():
     itemId = str(idEntry.get())
     itemName = str(nameEntry.get())
     itemPrice = str(priceEntry.get())
-    itemLocation = str(locationEntry.get())
+    itemLocation = str(selectedLocation.get())
     itemQuantity = str(quantityEntry.get())
-    itemStatus = str(statusEntry.get())
+    itemStatus = str(selectedStatus.get())
 
     if itemId.strip() == "":
         messagebox.showerror("Error", "Please enter a valid item ID")
@@ -135,8 +135,8 @@ def update_inventory():
 
     selected_item = selected_items[0]
     update_name = my_tree.item(selected_item)['values'][0]
-    update(idEntry.get(), nameEntry.get(), priceEntry.get(), locationEntry.get(),
-           quantityEntry.get(), statusEntry.get(), update_name)
+    update(idEntry.get(), nameEntry.get(), priceEntry.get(), selectedLocation.get(),
+           quantityEntry.get(), selectedStatus.get(), update_name)
 
 
 def reset_invetory():
@@ -152,19 +152,48 @@ def reset_invetory():
 
 
 def display_inventory():
-    for item in my_tree.get_children():
-        my_tree.delete(item)
+    # Clear the treeview
+    my_tree.delete(*my_tree.get_children())
 
-    for i, result in enumerate(read()):
-        print(f"Index: {i}, Element: {result}\n")
+    # Retrieve all records from the inventory table
+    cursor.execute("SELECT * FROM inventory")
+    rows = cursor.fetchall()
 
+    # Insert records into the treeview
+    for i, row in enumerate(rows):
         my_tree.insert(parent='', index='end', iid=i,
-                       text="", values=result, tag="orow")
+                       text="", values=row, tags=("data",))
 
-    my_tree.tag_configure('orow', background='#EEEEEE')
+    my_tree.tag_configure("orow", background="#000")
+
+    # Bind the selection event to update the data entry fields
+    def on_select(event):
+        selection = my_tree.selection()
+        if selection:
+            selected_item = my_tree.item(selection[0])["values"]
+            idEntry.delete(0, END)
+            nameEntry.delete(0, END)
+            priceEntry.delete(0, END)
+            locationEntry.delete(0, END)
+            quantityEntry.delete(0, END)
+            statusEntry.delete(0, END)
+            idEntry.insert(END, selected_item[0])
+            nameEntry.insert(END, selected_item[1])
+            priceEntry.insert(END, selected_item[2])
+            selectedLocation.set(selected_item[3])
+            quantityEntry.insert(END, selected_item[4])
+            selectedStatus.set(selected_item[5])
+
+    my_tree.bind("<<TreeviewSelect>>", on_select)
+
+    # Select the first record by default, if available
+    if rows:
+        my_tree.selection_set(0)
 
 
+# Call display_inventory() when the application starts
 display_inventory()
+
 
 # GUI
 # root = Tk()
@@ -201,9 +230,21 @@ statusEntry = Entry(root, width=25, bd=5, font=('Arial', 15))
 idEntry.grid(row=1, column=1, columnspan=3, padx=5, pady=5)
 nameEntry.grid(row=2, column=1, columnspan=3, padx=5, pady=5)
 priceEntry.grid(row=3, column=1, columnspan=3, padx=5, pady=5)
-locationEntry.grid(row=4, column=1, columnspan=3, padx=5, pady=5)
 quantityEntry.grid(row=5, column=1, columnspan=3, padx=5, pady=5)
-statusEntry.grid(row=6, column=1, columnspan=3, padx=5, pady=5)
+
+selectedLocation = StringVar()
+
+selectedStatus = StringVar()
+
+
+locationOptions = ["Los Angeles", "New York", "Washington D.C", "Texas"]
+statusOptions = ["Instock", "Out of Stock"]
+
+locationDropdown = OptionMenu(root, selectedLocation, *locationOptions)
+statusDropdown = OptionMenu(root, selectedStatus, *statusOptions)
+
+locationDropdown.grid(row=4, column=1, columnspan=3, padx=10, pady=10)
+statusDropdown.grid(row=6, column=1, columnspan=3, padx=10, pady=10)
 
 buttonAdd = Button(
     root, text="Add", padx=5, pady=5, width=5, bd=3,
@@ -249,7 +290,7 @@ my_tree.heading("Location", text="Location", anchor=W)
 my_tree.heading("Quantity", text="Quantity", anchor=W)
 my_tree.heading("Status", text="Status", anchor=W)
 
-my_tree.tag_configure('orow', background="#ff0000", font=('Arial bold', 15))
+my_tree.tag_configure('data', background="#000000", font=('Arial bold', 15))
 my_tree.grid(row=1, column=5, columnspan=4, rowspan=5, padx=10, pady=10)
 
 
